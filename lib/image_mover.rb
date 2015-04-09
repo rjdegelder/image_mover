@@ -3,9 +3,17 @@ require 'exifr'
 
 class ImageMover
 
-  def move soure_path, destination_path
+  attr_reader :source_path, :destination_path
+
+  # ImageMover.new("/Users/robertjan/Pictures/Foto's/camera", "/Volumes/pictures/photos/Import").move
+  def initialize source_path, destination_path
+    @source_path = source_path
+    @destination_path = destination_path
+  end
+
+  def move
     Dir.glob("#{source_path}/**/*.jpg").each do |filename|
-      move_file
+      move_file filename
     end
   end
 
@@ -16,10 +24,10 @@ class ImageMover
       exif_data = EXIFR::JPEG.new(filename)
       date_time = exif_data.date_time_original || exif_data.date_time || File.mtime(filename)
 
-      year_dir = "#{destination_path}/#{date_time.year}"
-      month_dir = "#{year_dir}/#{date_time.strftime("%m")}"
-      date_dir = "#{month_dir}/#{date_time.strftime("%Y-%m-%d")}"
-      new_filename = "#{date_dir}/#{File.basename(filename)}"
+      year_dir = File.join [destination_path, date_time.strftime("%Y")]
+      month_dir = File.join [year_dir, date_time.strftime("%m")]
+      date_dir = File.join [month_dir, date_time.strftime("%Y-%m-%d")]
+      new_filename = File.join [date_dir, File.basename(filename)]
 
       if File.file?(new_filename)
         puts "Removing already existing file: #{filename}"
@@ -35,9 +43,9 @@ class ImageMover
           FileUtils.mkdir(month_dir)
         end
 
-        unless File.directory?(output_dir)
-          puts "Creating directory: #{output_dir}"
-          FileUtils.mkdir(output_dir)
+        unless File.directory?(date_dir)
+          puts "Creating directory: #{date_dir}"
+          FileUtils.mkdir(date_dir)
         end
 
         puts "Moving: #{File.basename(filename)} to: #{new_filename}"
